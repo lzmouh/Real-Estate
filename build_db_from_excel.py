@@ -6,6 +6,9 @@ from datetime import datetime
 # -------------------------------------------------
 # CONFIG
 # -------------------------------------------------
+import os
+os.makedirs("database", exist_ok=True)
+
 EXCEL_FILE = "Real estate Master.xlsx"
 DB_PATH = "sqlite:///database/real_estate.db"
 

@@ -1,5 +1,6 @@
 import streamlit as st
 import subprocess
+import sys
 from utils.db_health import db_exists_and_ready
 
 st.set_page_config(layout="wide")
@@ -15,28 +16,31 @@ st.warning("Real estate database not found or not initialized")
 
 st.markdown("""
 ### Required action
-This application requires a populated **real_estate.db** file.
+This app needs a populated database built from:
 
-You must build it using the Excel master file.
-The script will:
-- Read all flats
-- Create users, properties, leases
+**Real estate Master.xlsx**
+
+The setup script will:
+- Create all tables
+- Import properties, owners, tenants
 - Import monthly financials
 """)
 
 st.code("python build_db_from_excel.py")
 
-st.info("⚠️ Make sure Excel file is in the project root")
-
-# OPTIONAL SAFE EXECUTION
 if st.checkbox("I understand – run setup script now"):
     if st.button("🚀 Build Database"):
-        try:
-            subprocess.run(
-                ["python", "build_db_from_excel.py"],
-                check=True
+        with st.spinner("Building database..."):
+            result = subprocess.run(
+                [sys.executable, "build_db_from_excel.py"],
+                capture_output=True,
+                text=True
             )
-            st.success("Database built successfully")
+
+        if result.returncode == 0:
+            st.success("✅ Database built successfully")
             st.experimental_rerun()
-        except Exception as e:
-            st.error(f"Setup failed: {e}")
+        else:
+            st.error("❌ Setup failed")
+            st.subheader("Error output")
+            st.code(result.stderr or result.stdout)
