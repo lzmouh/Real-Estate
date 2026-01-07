@@ -2,8 +2,9 @@ streamlit
 pandas
 numpy
 sqlalchemy
-passlib[bcrypt]
+passlib
 python-dateutil
 matplotlib
 yagmail
 twilio
+openpyxl
