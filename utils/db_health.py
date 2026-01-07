@@ -7,24 +7,23 @@ REQUIRED_TABLES = {
     "owners",
     "tenants",
     "leases",
-    "monthly_financials"
+    "monthly_financials",
 }
 
 def db_exists_and_ready(db_path="database/real_estate.db"):
     if not os.path.exists(db_path):
-        return False, "Database file does not exist"
+        return False, "Database file missing"
 
     try:
         conn = sqlite3.connect(db_path)
-        cursor = conn.cursor()
-        cursor.execute("SELECT name FROM sqlite_master WHERE type='table'")
-        tables = {row[0] for row in cursor.fetchall()}
+        cur = conn.cursor()
+        cur.execute("SELECT name FROM sqlite_master WHERE type='table'")
+        tables = {r[0] for r in cur.fetchall()}
         conn.close()
 
         if not REQUIRED_TABLES.issubset(tables):
-            return False, "Database exists but is missing required tables"
+            return False, "Missing required tables"
 
-        return True, "Database is ready"
-
+        return True, "Database ready"
     except Exception as e:
         return False, str(e)

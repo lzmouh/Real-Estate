@@ -12,23 +12,16 @@ if ready:
     st.success("Database already initialized")
     st.stop()
 
-st.warning("Real estate database not found or not initialized")
+st.warning("Database not found or incomplete")
 
 st.markdown("""
-### Required action
-This app needs a populated database built from:
+### Setup Required
+This application requires a populated database built from:
 
 **Real estate Master.xlsx**
-
-The setup script will:
-- Create all tables
-- Import properties, owners, tenants
-- Import monthly financials
 """)
 
-st.code("python build_db_from_excel.py")
-
-if st.checkbox("I understand – run setup script now"):
+if st.checkbox("I understand and want to build the database"):
     if st.button("🚀 Build Database"):
         with st.spinner("Building database..."):
             result = subprocess.run(
@@ -42,5 +35,5 @@ if st.checkbox("I understand – run setup script now"):
             st.experimental_rerun()
         else:
             st.error("❌ Setup failed")
-            st.subheader("Error output")
+            st.subheader("Error Output")
             st.code(result.stderr or result.stdout)

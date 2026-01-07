@@ -1,16 +1,17 @@
+import os
 import pandas as pd
 from sqlalchemy import create_engine
-from passlib.hash import bcrypt
-from datetime import datetime
+from passlib.context import CryptContext
 
 # -------------------------------------------------
-# CONFIG
+# SAFETY & CONFIG
 # -------------------------------------------------
-import os
 os.makedirs("database", exist_ok=True)
 
 EXCEL_FILE = "Real estate Master.xlsx"
 DB_PATH = "sqlite:///database/real_estate.db"
+
+pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
 
 engine = create_engine(DB_PATH, echo=False)
 
@@ -18,27 +19,23 @@ engine = create_engine(DB_PATH, echo=False)
 # LOAD MASTER SHEET
 # -------------------------------------------------
 master = pd.read_excel(EXCEL_FILE, sheet_name="Master")
+master.columns = (
+    master.columns.str.strip()
+    .str.lower()
+    .str.replace(" ", "_")
+)
 
 # -------------------------------------------------
-# CLEAN COLUMN NAMES
+# TABLE DATA
 # -------------------------------------------------
-master.columns = master.columns.str.strip().str.lower().str.replace(" ", "_")
-
-# -------------------------------------------------
-# CREATE TABLES
-# -------------------------------------------------
-master_users = []
-properties = []
-owners = []
-tenants = []
-leases = []
+properties, owners, tenants, leases, users = [], [], [], [], []
 
 for _, row in master.iterrows():
-    flat = str(row["flat"])
+    flat = str(row.get("flat")).strip()
 
-    # -----------------------------
-    # PROPERTIES
-    # -----------------------------
+    if not flat or flat == "nan":
+        continue
+
     properties.append({
         "flat": flat,
         "building_name": row.get("building"),
@@ -48,92 +45,75 @@ for _, row in master.iterrows():
         "internet_line": row.get("internet_line_number"),
         "internet_provider": row.get("internet"),
         "internet_end": row.get("internet_expiry"),
-        "cost": row.get("capex")
+        "cost": row.get("capex"),
     })
 
-    # -----------------------------
-    # OWNERS
-    # -----------------------------
     owners.append({
         "flat": flat,
         "name": row.get("owner"),
         "address": row.get("address"),
         "id_number": None,
         "phone": row.get("phone"),
-        "email": None
+        "email": None,
     })
 
-    # -----------------------------
-    # TENANTS
-    # -----------------------------
     tenants.append({
         "flat": flat,
         "name": row.get("tenant"),
         "address": row.get("address"),
         "id_number": None,
         "phone": row.get("phone"),
-        "email": None
+        "email": None,
     })
 
-    # -----------------------------
-    # LEASES
-    # -----------------------------
     leases.append({
         "flat": flat,
         "start": row.get("lease_start"),
         "end": row.get("lease_end"),
         "rent": row.get("rent"),
-        "allowance": row.get("ewa_limit")
+        "allowance": row.get("ewa_limit"),
     })
 
-    # -----------------------------
-    # USERS (OWNER + TENANT)
-    # -----------------------------
     if pd.notna(row.get("owner")):
-        master_users.append({
+        users.append({
             "username": f"owner_{flat}",
-            "password": bcrypt.hash("owner123"),
+            "password": pwd_context.hash("owner123"),
             "role": "owner",
-            "flat": flat
+            "flat": flat,
         })
 
     if pd.notna(row.get("tenant")):
-        master_users.append({
+        users.append({
             "username": f"tenant_{flat}",
-            "password": bcrypt.hash("tenant123"),
+            "password": pwd_context.hash("tenant123"),
             "role": "tenant",
-            "flat": flat
+            "flat": flat,
         })
 
 # -------------------------------------------------
-# WRITE TO DATABASE
+# ADMIN USER
+# -------------------------------------------------
+users.append({
+    "username": "admin",
+    "password": pwd_context.hash("admin123"),
+    "role": "admin",
+    "flat": None,
+})
+
+# -------------------------------------------------
+# WRITE TABLES
 # -------------------------------------------------
 pd.DataFrame(properties).to_sql("properties", engine, if_exists="replace", index=False)
 pd.DataFrame(owners).to_sql("owners", engine, if_exists="replace", index=False)
 pd.DataFrame(tenants).to_sql("tenants", engine, if_exists="replace", index=False)
 pd.DataFrame(leases).to_sql("leases", engine, if_exists="replace", index=False)
-
-# -------------------------------------------------
-# CREATE USERS TABLE
-# -------------------------------------------------
-users_df = pd.DataFrame(master_users)
-
-admin = {
-    "username": "admin",
-    "password": bcrypt.hash("admin123"),
-    "role": "admin",
-    "flat": None
-}
-
-users_df = pd.concat([users_df, pd.DataFrame([admin])])
-users_df.to_sql("users", engine, if_exists="replace", index=False)
+pd.DataFrame(users).to_sql("users", engine, if_exists="replace", index=False)
 
 # -------------------------------------------------
 # MONTHLY FINANCIALS FROM FLAT SHEETS
 # -------------------------------------------------
 xls = pd.ExcelFile(EXCEL_FILE)
-
-monthly_records = []
+monthly = []
 
 for sheet in xls.sheet_names:
     if sheet.lower() == "master":
@@ -146,7 +126,7 @@ for sheet in xls.sheet_names:
         if pd.isna(r.get("month")):
             continue
 
-        monthly_records.append({
+        monthly.append({
             "flat": sheet,
             "month": r.get("month"),
             "rent": r.get("rent", 0),
@@ -156,12 +136,12 @@ for sheet in xls.sheet_names:
             "housekeeping": r.get("hk", 0),
             "internet": r.get("internet", 0),
             "management": r.get("management", 0),
-            "misc": r.get("other", 0)
+            "misc": r.get("other", 0),
         })
 
-if monthly_records:
-    pd.DataFrame(monthly_records).to_sql(
+if monthly:
+    pd.DataFrame(monthly).to_sql(
         "monthly_financials", engine, if_exists="replace", index=False
     )
 
-print("✅ real_estate.db successfully created from Excel")
+print("✅ real_estate.db successfully built from Excel")

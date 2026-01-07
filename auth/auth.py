@@ -1,14 +1,14 @@
-from passlib.hash import bcrypt
+from passlib.context import CryptContext
 from database.db import get_session
 from database.models import User
+
+pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
 
 def authenticate(username, password):
     db = get_session()
     user = db.query(User).filter_by(username=username).first()
-    if user and bcrypt.verify(password, user.password):
+    db.close()
+
+    if user and pwd_context.verify(password, user.password):
         return user
     return None
-
-def require_role(user, allowed):
-    if user.role not in allowed:
-        raise PermissionError
