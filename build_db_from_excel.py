@@ -4,15 +4,17 @@ from sqlalchemy import create_engine
 from passlib.context import CryptContext
 
 # -------------------------------------------------
-# SAFETY & CONFIG
+# SAFETY
 # -------------------------------------------------
 os.makedirs("database", exist_ok=True)
 
+# -------------------------------------------------
+# CONFIG
+# -------------------------------------------------
 EXCEL_FILE = "Real estate Master.xlsx"
 DB_PATH = "sqlite:///database/real_estate.db"
 
 pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
-
 engine = create_engine(DB_PATH, echo=False)
 
 # -------------------------------------------------
@@ -28,12 +30,15 @@ master.columns = (
 # -------------------------------------------------
 # TABLE DATA
 # -------------------------------------------------
-properties, owners, tenants, leases, users = [], [], [], [], []
+properties = []
+owners = []
+tenants = []
+leases = []
 
 for _, row in master.iterrows():
     flat = str(row.get("flat")).strip()
 
-    if not flat or flat == "nan":
+    if not flat or flat.lower() == "nan":
         continue
 
     properties.append({
@@ -74,43 +79,28 @@ for _, row in master.iterrows():
         "allowance": row.get("ewa_limit"),
     })
 
-    if pd.notna(row.get("owner")):
-        users.append({
-            "username": f"owner_{flat}",
-            "password": pwd_context.hash("owner123"),
-            "role": "owner",
-            "flat": flat,
-        })
-
-    if pd.notna(row.get("tenant")):
-        users.append({
-            "username": f"tenant_{flat}",
-            "password": pwd_context.hash("tenant123"),
-            "role": "tenant",
-            "flat": flat,
-        })
-
 # -------------------------------------------------
-# ADMIN USER
-# -------------------------------------------------
-users.append({
-    "username": "admin",
-    "password": pwd_context.hash("admin123"),
-    "role": "admin",
-    "flat": None,
-})
-
-# -------------------------------------------------
-# WRITE TABLES
+# WRITE CORE TABLES
 # -------------------------------------------------
 pd.DataFrame(properties).to_sql("properties", engine, if_exists="replace", index=False)
 pd.DataFrame(owners).to_sql("owners", engine, if_exists="replace", index=False)
 pd.DataFrame(tenants).to_sql("tenants", engine, if_exists="replace", index=False)
 pd.DataFrame(leases).to_sql("leases", engine, if_exists="replace", index=False)
-pd.DataFrame(users).to_sql("users", engine, if_exists="replace", index=False)
 
 # -------------------------------------------------
-# MONTHLY FINANCIALS FROM FLAT SHEETS
+# USERS TABLE — ADMIN ONLY
+# -------------------------------------------------
+admin_user = pd.DataFrame([{
+    "username": "admin",
+    "password": pwd_context.hash("admin123"),
+    "role": "admin",
+    "flat": None
+}])
+
+admin_user.to_sql("users", engine, if_exists="replace", index=False)
+
+# -------------------------------------------------
+# MONTHLY FINANCIALS
 # -------------------------------------------------
 xls = pd.ExcelFile(EXCEL_FILE)
 monthly = []
@@ -144,4 +134,4 @@ if monthly:
         "monthly_financials", engine, if_exists="replace", index=False
     )
 
-print("✅ real_estate.db successfully built from Excel")
+print("✅ Database initialized successfully with ADMIN ONLY")
