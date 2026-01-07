@@ -1,5 +1,5 @@
 import streamlit as st
-from auth.auth import authenticate
+from auth import authenticate
 
 st.set_page_config(layout="wide")
 
