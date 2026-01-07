@@ -1,6 +1,6 @@
 import streamlit as st
-from db_health import db_exists_and_ready
-from auth import authenticate
+from utils.db_health import db_exists_and_ready
+from auth.auth import authenticate
 
 st.set_page_config(layout="wide")
 

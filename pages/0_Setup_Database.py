@@ -1,6 +1,6 @@
 import streamlit as st
 import subprocess
-from db_health import db_exists_and_ready
+from utils.db_health import db_exists_and_ready
 
 st.set_page_config(layout="wide")
 st.title("🛠 Initial Database Setup")

@@ -3,8 +3,12 @@ from database.db import get_session
 from database.models import Property, Lease
 from services.documents import save_document
 
-flat = st.selectbox("Select Property", [])
-
+#flat = st.selectbox("Select Property", [])
+flat = st.session_state.get("selected_flat")
+if not flat:
+    st.warning("No property selected")
+    st.stop()
+    
 db = get_session()
 prop = db.query(Property).filter_by(flat=flat).first()
 lease = db.query(Lease).filter_by(flat=flat).first()

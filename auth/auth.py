@@ -1,6 +1,6 @@
 from passlib.hash import bcrypt
-from db import get_session
-from models import User
+from database.db import get_session
+from database.models import User
 
 def authenticate(username, password):
     db = get_session()
