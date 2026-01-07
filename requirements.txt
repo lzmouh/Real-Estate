@@ -1,0 +1,9 @@
+streamlit
+pandas
+numpy
+sqlalchemy
+passlib[bcrypt]
+python-dateutil
+matplotlib
+yagmail
+twilio
