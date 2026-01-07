@@ -11,7 +11,7 @@ ready, msg = db_exists_and_ready()
 # --------------------------------------------------
 if not ready:
     st.session_state.clear()
-    st.switch_page("0_Setup_Database.py")
+    st.switch_page("/0_Setup_Database.py")
 
 # --------------------------------------------------
 # NORMAL APP FLOW
